@@ -1,14 +1,13 @@
 import json
 import time
 import random
+from typing import Literal
 
-from langchain_openai import ChatOpenAI
+from pydantic import BaseModel
+
+from langchain_community.chat_models import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.exceptions import OutputParserException
-
-from pydantic import BaseModel, Field
-from typing import Literal
 
 class ClassificationResult(BaseModel):
   category: Literal["Support", "Bug", "Feedback"]
@@ -20,46 +19,63 @@ OUTPUT_PATH = "output.json"
 
 
 def build_chain():
-  llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+  llm = ChatOllama(model="llama3", temperature=0)
 
   parser = PydanticOutputParser(pydantic_object=ClassificationResult)
 
   prompt = ChatPromptTemplate.from_messages(
-    [("system", "Ты - классификатор пользовательских обращений сервиса доставки еды."),
-      ("human",
-        """
-        Классифицируй обращение пользователя.
+        [
+            (
+                "system",
+                "Ты — строгий классификатор пользовательских обращений сервиса доставки еды. Если сомневаешься - выбирай наиболее вероятный класс"
+            ),
+            (
+                "human",
+                """
+                Определи класс и тональность обращения.
 
-        Классы:
-        1. Support - вопросы, доставка, возвраты, аккаунт
-        2. Bug - технические проблемы, ошибки приложения
-        3. Feedback - отзывы, жалобы, благодарности
+                Классы:
+                - Support — вопросы, доставка, возвраты, аккаунт
+                - Bug — технические проблемы, ошибки приложения, сбои приложение не работает
+                - Feedback — отзывы, жалобы, благодарности
 
-        Определи эмоциональную окраску: positive / neutral / negative
+                Определи тональность обращения: positive / neutral / negative
 
-        {format_instructions}
+                Пример:
+                Текст: "Приложение не открывается"
+                Ответ: "id":"1", "text":"Приложение не открывается", "category":"Bug","sentiment":"negative"
 
-        Обращение пользователя: {text}
-        """)]
-  )
+                Текст: "Спасибо, курьер был вежлив"
+                Ответ: "id":"2", "text":"Спасибо, курьер был вежлив", "category":"Feedback","sentiment":"positive"
 
-  return prompt | llm | parser
+                Формат ответа: {format_instructions}
+
+                Текст обращения:
+                {text}
+                """
+            )
+        ]
+    )
+
+
+  chain = (prompt | llm | parser)
+
+  return chain
 
 
 def safe_invoke(chain, text, retries=3):
-  for attempt in range(retries):
-    try:
-      return chain.invoke({"text": text})
-
-    except OutputParserException as e:
-      print("Ответ не прошел валидацию")
-
-    except Exception as e:
-      print(f"Попытка {attempt + 1}: модель недоступна, таймаут или ошибка сети")
-
-    time.sleep(2 ** attempt + random.random())
-
-  raise RuntimeError("Модель недоступна")
+    for attempt in range(retries):
+        try:
+            return chain.invoke(
+                {
+                    "text": text,
+                    "format_instructions": chain.steps[-1].get_format_instructions(),
+                }
+            )
+        except Exception as e:
+            print(f"Попытка {attempt + 1}: ошибка модели или парсинга: {e}")
+            time.sleep(2 ** attempt + random.random())
+    raise RuntimeError("LLM is not available")
 
 
 def main():
