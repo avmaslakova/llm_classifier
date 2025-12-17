@@ -43,10 +43,10 @@ def build_chain():
 
                 Пример:
                 Текст: "Приложение не открывается"
-                Ответ: "id":"1", "text":"Приложение не открывается", "category":"Bug","sentiment":"negative"
+                Ответ: "category":"Bug","sentiment":"negative"
 
                 Текст: "Спасибо, курьер был вежлив"
-                Ответ: "id":"2", "text":"Спасибо, курьер был вежлив", "category":"Feedback","sentiment":"positive"
+                Ответ: "category":"Feedback","sentiment":"positive"
 
                 Формат ответа: {format_instructions}
 
@@ -58,7 +58,11 @@ def build_chain():
     )
 
 
-  chain = (prompt | llm | parser)
+  chain = (
+      prompt
+      | llm
+      | parser
+  )
 
   return chain
 
