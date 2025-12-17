@@ -2,7 +2,7 @@ import json
 import time
 import random
 
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.exceptions import OutputParserException
@@ -20,7 +20,7 @@ OUTPUT_PATH = "output.json"
 
 
 def build_chain():
-  llm = ChatOllama(model="llama3", temperature=0)
+  llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
   parser = PydanticOutputParser(pydantic_object=ClassificationResult)
 
