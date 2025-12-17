@@ -19,7 +19,7 @@
 ### 1. Установка Ollama
 
 Скачать и установить Ollama:
-👉 [https://ollama.com](https://ollama.com)
+[https://ollama.com](https://ollama.com)
 
 Загрузить модель:
 
@@ -30,7 +30,7 @@ ollama pull llama3
 
 ```bash
 git clone https://github.com/avmaslakova/llm_classifier.git
-cd REPOSITORY
+cd llm_classifier
 ```
 
 ### 3. Создание виртуального окружения
